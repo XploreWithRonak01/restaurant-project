@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
+    <title>Restaurant POS · Tables</title>
+    <!-- Tailwind + Fonts + Icons + Chart.js (kept for consistency, though not heavily used) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background-color: #F8FAFC;
+        }
+
+        .sidebar-hover:hover {
+            background-color: rgba(249, 115, 22, 0.1);
+        }
+
+        .transition-smooth {
+            transition: all 0.2s ease;
+        }
+
+        .scroll-light::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .scroll-light::-webkit-scrollbar-track {
+            background: #F1F5F9;
+            border-radius: 10px;
+        }
+
+        .scroll-light::-webkit-scrollbar-thumb {
+            background: #CBD5E1;
+            border-radius: 10px;
+        }
+
+        /* table occupancy badge */
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            display: inline-block;
+        }
+
+        /* table card grid layout */
+        .table-card {
+            transition: all 0.15s ease;
+        }
+
+        .table-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(249, 115, 22, 0.2);
+        }
+    </style>
+</head>
+
+<body class="antialiased text-[#0F172A]">
+    <div class="flex min-h-screen">
+        <!-- SIDEBAR (identical to orders, but active link now points to Tables) -->
+        <aside id="sidebar"
+            class="fixed inset-y-0 left-0 z-50 w-64 bg-gradient-to-b from-[#F97316]/10 to-[#F97316]/20 text-[#0F172A] flex flex-col transform -translate-x-full transition-transform duration-300 md:translate-x-0 md:static md:z-auto shadow-xl border-r border-[#F97316]/20">
+            <div class="flex items-center h-16 px-6 border-b border-[#F97316]/30">
+                <span class="text-2xl font-bold tracking-tight"><span class="text-[#F97316]">POS</span>System</span>
+            </div>
+            <nav class="flex-1 overflow-y-auto py-5 px-3 space-y-1 scroll-light">
+                <a href="dashboard.html"
+                    class="flex items-center gap-3 px-4 py-3 text-base font-semibold rounded-xl transition-smooth sidebar-hover text-[#64748B] hover:text-[#0F172A] hover:bg-[#F97316]/10">
+                    <i class="fas fa-th-large w-5"></i> Dashboard
+                </a>
+                <a href="orders.html"
+                    class="flex items-center gap-3 px-4 py-3 text-base font-semibold rounded-xl transition-smooth sidebar-hover text-[#64748B] hover:text-[#0F172A] hover:bg-[#F97316]/10">
+                    <i class="fas fa-clipboard-list w-5"></i> Orders
+                </a>
+                <!-- ACTIVE: Tables -->
+                <a href="tables.html"
+                    class="flex items-center gap-3 px-4 py-3 text-base font-semibold rounded-xl transition-smooth sidebar-hover bg-[#F97316]/20 text-[#0F172A] border border-[#F97316]/30">
+                    <i class="fas fa-chair w-5 text-[#F97316]"></i> Tables
+                </a>
+                <a href="menu.html"
+                    class="flex items-center gap-3 px-4 py-3 text-base font-semibold rounded-xl transition-smooth sidebar-hover text-[#64748B] hover:text-[#0F172A] hover:bg-[#F97316]/10">
+                    <i class="fas fa-utensils w-5"></i> Menu
+                </a>
+                <a href="#"
+                    class="flex items-center gap-3 px-4 py-3 text-base font-semibold rounded-xl transition-smooth sidebar-hover text-[#64748B] hover:text-[#0F172A] hover:bg-[#F97316]/10">
+                    <i class="fas fa-boxes w-5"></i> Inventory
+                </a>
+                <a href="#"
+                    class="flex items-center gap-3 px-4 py-3 text-base font-semibold rounded-xl transition-smooth sidebar-hover text-[#64748B] hover:text-[#0F172A] hover:bg-[#F97316]/10">
+                    <i class="fas fa-chart-line w-5"></i> Reports
+                </a>
+                <a href="#"
+                    class="flex items-center gap-3 px-4 py-3 text-base font-semibold rounded-xl transition-smooth sidebar-hover text-[#64748B] hover:text-[#0F172A] hover:bg-[#F97316]/10">
+                    <i class="fas fa-users w-5"></i> Staff
+                </a>
+                <a href="#"
+                    class="flex items-center gap-3 px-4 py-3 text-base font-semibold rounded-xl transition-smooth sidebar-hover text-[#64748B] hover:text-[#0F172A] hover:bg-[#F97316]/10">
+                    <i class="fas fa-cog w-5"></i> Settings
+                </a>
+            </nav>
+            <!-- Logout button -->
+            <div class="p-4 border-t border-[#F97316]/30">
+                <a href="#"
+                    class="flex items-center gap-3 px-4 py-3 text-base font-semibold rounded-xl transition-smooth sidebar-hover text-[#64748B] hover:text-[#0F172A] hover:bg-[#F97316]/10">
+                    <i class="fas fa-sign-out-alt w-5"></i> Logout
+                </a>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <div class="flex-1 flex flex-col min-w-0">
+            <!-- TOP NAVBAR (same style) -->
+            <header
+                class="bg-white border-b border-[#E5E7EB] px-4 md:px-6 py-3 flex items-center justify-between shadow-sm">
+                <div class="flex items-center gap-3">
+                    <button id="sidebarToggle" class="md:hidden text-[#64748B] hover:text-[#F97316] text-xl">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h1 class="text-2xl font-semibold text-[#0F172A]">Tables</h1>
+                </div>
+                <!-- search (global) -->
+                <div
+                    class="hidden md:flex items-center bg-[#F8FAFC] px-4 py-2 rounded-full border border-[#E5E7EB] w-80">
+                    <i class="fas fa-search text-[#64748B] mr-3 text-sm"></i>
+                    <input type="text" placeholder="Search tables, reservations..."
+                        class="bg-transparent w-full text-sm focus:outline-none text-[#0F172A] placeholder:text-[#94A3B8]">
+                </div>
+                <!-- notifications + user -->
+                <div class="flex items-center gap-4">
+                    <button class="relative text-[#64748B] hover:text-[#F97316] text-xl">
+                        <i class="far fa-bell"></i>
+                        <span
+                            class="absolute -top-1 -right-1 bg-[#F97316] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">3</span>
+                    </button>
+                    <div class="flex items-center gap-2">
+                        <div
+                            class="w-9 h-9 rounded-full bg-[#F97316] flex items-center justify-center text-white font-bold shadow-sm">
+                            AW</div>
+                        <div class="hidden lg:block leading-tight">
+                            <div class="text-sm font-semibold text-[#0F172A]">Alex waiter</div>
+                            <div class="text-xs text-[#64748B]">Manager</div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- TABLES PAGE CONTENT -->
+            <main class="flex-1 overflow-y-auto p-4 md:p-6 scroll-light">
+
+                <!-- TABLES SUMMARY CARDS (occupancy stats) -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
+                    <!-- Total tables -->
+                    <div class="bg-white rounded-xl shadow-md border border-[#E5E7EB] p-5 flex items-center gap-4">
+                        <div
+                            class="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center text-[#F97316] text-xl">
+                            <i class="fas fa-chair"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm text-[#64748B] font-medium">Total Tables</p>
+                            <p class="text-2xl font-bold text-[#0F172A]">24</p>
+                            <p class="text-xs text-green-600 font-medium mt-1">2 reserved · 22 active</p>
+                        </div>
+                    </div>
+                    <!-- Occupied now -->
+                    <div class="bg-white rounded-xl shadow-md border border-[#E5E7EB] p-5 flex items-center gap-4">
+                        <div
+                            class="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 text-xl">
+                            <i class="fas fa-user-friends"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm text-[#64748B]">Occupied</p>
+                            <p class="text-2xl font-bold text-[#0F172A]">13</p>
+                            <p class="text-xs text-amber-600 font-medium mt-1">dine‑in active</p>
+                        </div>
+                    </div>
+                    <!-- Free tables -->
+                    <div class="bg-white rounded-xl shadow-md border border-[#E5E7EB] p-5 flex items-center gap-4">
+                        <div
+                            class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-600 text-xl">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm text-[#64748B]">Free / Available</p>
+                            <p class="text-2xl font-bold text-[#0F172A]">7</p>
+                            <p class="text-xs text-green-600 font-medium mt-1">ready to seat</p>
+                        </div>
+                    </div>
+                    <!-- Reserved -->
+                    <div class="bg-white rounded-xl shadow-md border border-[#E5E7EB] p-5 flex items-center gap-4">
+                        <div
+                            class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xl">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm text-[#64748B]">Reserved</p>
+                            <p class="text-2xl font-bold text-[#0F172A]">4</p>
+                            <p class="text-xs text-blue-600 font-medium mt-1">coming in 30min</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FLOOR PLAN / TABLE GRID + FILTERS -->
+                <div class="bg-white rounded-xl shadow-md border border-[#E5E7EB] p-5 mb-8">
+                    <!-- header with filter + floor toggle (mock) -->
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                        <div class="flex items-center gap-3">
+                            <h2 class="text-xl font-semibold text-[#0F172A]">Floor plan · main dining</h2>
+                            <span
+                                class="bg-[#F97316]/20 text-[#F97316] px-3 py-1 rounded-full text-xs font-medium">today
+                                19:00</span>
+                        </div>
+                        <div class="flex gap-3">
+                            <button
+                                class="px-4 py-2 border border-[#E5E7EB] rounded-lg text-sm font-medium text-[#64748B] hover:bg-[#F8FAFC]">
+                                <i class="fas fa-layer-group mr-2"></i>Floor view
+                            </button>
+                            <button
+                                class="px-4 py-2 bg-[#F97316] text-white rounded-lg text-sm font-medium hover:bg-[#EA580C] transition-colors">
+                                <i class="fas fa-plus mr-2"></i>Add table
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Quick status filter chips -->
+                    <div class="flex flex-wrap gap-2 mb-6">
+                        <span
+                            class="bg-[#F97316] text-white px-4 py-1.5 rounded-full text-xs font-medium cursor-pointer">All
+                            tables</span>
+                        <span
+                            class="border border-[#E5E7EB] text-[#64748B] px-4 py-1.5 rounded-full text-xs font-medium cursor-pointer hover:bg-[#F8FAFC]">Occupied</span>
+                        <span
+                            class="border border-[#E5E7EB] text-[#64748B] px-4 py-1.5 rounded-full text-xs font-medium cursor-pointer hover:bg-[#F8FAFC]">Free</span>
+                        <span
+                            class="border border-[#E5E7EB] text-[#64748B] px-4 py-1.5 rounded-full text-xs font-medium cursor-pointer hover:bg-[#F8FAFC]">Reserved</span>
+                        <span
+                            class="border border-[#E5E7EB] text-[#64748B] px-4 py-1.5 rounded-full text-xs font-medium cursor-pointer hover:bg-[#F8FAFC]">Out
+                            of service</span>
+                    </div>
+
+                    <!-- DYNAMIC TABLE GRID (cards) -->
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
+                        <!-- Table 1 - occupied -->
+                        <div
+                            class="table-card bg-white border-2 border-[#F97316]/40 rounded-xl p-3 text-center shadow-sm relative">
+                            <div class="absolute top-2 right-2"><span
+                                    class="status-badge bg-amber-100 text-amber-700 text-[10px] px-2">Occupied</span>
+                            </div>
+                            <i class="fas fa-utensils text-2xl text-[#F97316] mt-2 mb-1"></i>
+                            <h3 class="font-bold text-base">Table 1</h3>
+                            <p class="text-xs text-[#64748B]">2 guests · 45 min</p>
+                            <p class="text-xs font-medium text-[#0F172A] mt-1">#OR124</p>
+                            <div class="mt-2 flex justify-center gap-1">
+                                <button class="bg-[#F8FAFC] text-xs px-2 py-1 rounded border border-[#E5E7EB]"><i
+                                        class="far fa-edit"></i></button>
+                                <button class="bg-[#F8FAFC] text-xs px-2 py-1 rounded border border-[#E5E7EB]"><i
+                                        class="fas fa-coffee"></i></button>
+                            </div>
+                        </div>
+
+                        <!-- Table 2 - occupied -->
+                        <div
+                            class="table-card bg-white border-2 border-[#F97316]/40 rounded-xl p-3 text-center shadow-sm relative">
+                            <span
+                                class="absolute top-2 right-2 status-badge bg-amber-100 text-amber-700 text-[10px] px-2">Occupied</span>
+                            <i class="fas fa-utensils text-2xl text-[#F97316] mt-2 mb-1"></i>
+                            <h3 class="font-bold text-base">Table 2</h3>
+                            <p class="text-xs text-[#64748B]">4 guests · 30 min</p>
+                            <p class="text-xs font-medium text-[#0F172A] mt-1">#OR125</p>
+                            <div class="mt-2 flex justify-center gap-1">
+                                <button class="bg-[#F8FAFC] text-xs px-2 py-1 rounded border"><i
+                                        class="far fa-edit"></i></button>
+                                <button class="bg-[#F8FAFC] text-xs px-2 py-1 rounded border"><i
+                                        class="fas fa-coffee"></i></button>
+                            </div>
+                        </div>
+
+                        <!-- Table 3 - free -->
+                        <div
+                            class="table-card bg-white border border-[#E5E7EB] rounded-xl p-3 text-center shadow-sm relative">
+                            <span
+                                class="absolute top-2 right-2 status-badge bg-green-100 text-green-700 text-[10px] px-2">Free</span>
+                            <i class="fas fa-chair text-2xl text-[#94A3B8] mt-2 mb-1"></i>
+                            <h3 class="font-bold text-base">Table 3</h3>
+                            <p class="text-xs text-[#64748B]">4 seats</p>
+                            <div class="mt-3 flex justify-center">
+                                <button class="bg-[#F97316] text-white text-xs px-3 py-1 rounded-full">Assign</button>
+                            </div>
+                        </div>
+
+                        <!-- Table 4 - reserved -->
+                        <div
+                            class="table-card bg-white border-2 border-blue-300 rounded-xl p-3 text-center shadow-sm relative">
+                            <span
+                                class="absolute top-2 right-2 status-badge bg-blue-100 text-blue-700 text-[10px] px-2">Reserved</span>
+                            <i class="fas fa-clock text-2xl text-blue-500 mt-2 mb-1"></i>
+                            <h3 class="font-bold text-base">Table 4</h3>
+                            <p class="text-xs text-[#64748B]">6 seats · 19:30</p>
+                            <p class="text-xs font-medium">Wilson party</p>
+                            <div class="mt-2 flex justify-center gap-1">
+                                <button class="bg-[#F8FAFC] text-xs px-2 py-1 rounded border"><i
+                                        class="far fa-calendar"></i></button>
+                            </div>
+                        </div>
+
+                        <!-- Table 5 - occupied -->
+                        <div
+                            class="table-card bg-white border-2 border-[#F97316]/40 rounded-xl p-3 text-center shadow-sm relative">
+                            <span
+                                class="absolute top-2 right-2 status-badge bg-amber-100 text-amber-700">Occupied</span>
+                            <i class="fas fa-utensils text-2xl text-[#F97316] mt-2 mb-1"></i>
+                            <h3 class="font-bold text-base">Table 5</h3>
+                            <p class="text-xs text-[#64748B]">2 guests · 15 min</p>
+                            <p class="text-xs font-medium">#OR126</p>
+                            <div class="mt-2 flex justify-center gap-1">
+                                <button class="bg-[#F8FAFC] text-xs px-2 py-1 rounded border"><i
+                                        class="far fa-edit"></i></button>
+                                <button class="bg-[#F8FAFC] text-xs px-2 py-1 rounded border"><i
+                                        class="fas fa-coffee"></i></button>
+                            </div>
+                        </div>
+
+                        <!-- Table 6 - free -->
+                        <div
+                            class="table-card bg-white border border-[#E5E7EB] rounded-xl p-3 text-center shadow-sm relative">
+                            <span
+                                class="absolute top-2 right-2 status-badge bg-green-100 text-green-700 text-[10px] px-2">Free</span>
+                            <i class="fas fa-chair text-2xl text-[#94A3B8] mt-2 mb-1"></i>
+                            <h3 class="font-bold text-base">Table 6</h3>
+                            <p class="text-xs text-[#64748B]">2 seats</p>
+                            <div class="mt-3 flex justify-center">
+                                <button class="bg-[#F97316] text-white text-xs px-3 py-1 rounded-full">Assign</button>
+                            </div>
+                        </div>
+
+                        <!-- Table 7 - occupied -->
+                        <div
+                            class="table-card bg-white border-2 border-[#F97316]/40 rounded-xl p-3 text-center shadow-sm relative">
+                            <span
+                                class="absolute top-2 right-2 status-badge bg-amber-100 text-amber-700">Occupied</span>
+                            <i class="fas fa-utensils text-2xl text-[#F97316] mt-2 mb-1"></i>
+                            <h3 class="font-bold text-base">Table 7</h3>
+                            <p class="text-xs text-[#64748B]">5 guests · 1h 10m</p>
+                            <p class="text-xs font-medium">#OR127</p>
+                            <div class="mt-2 flex justify-center gap-1">
+                                <button class="bg-[#F8FAFC] text-xs px-2 py-1 rounded border"><i
+                                        class="far fa-edit"></i></button>
+                                <button class="bg-[#F8FAFC] text-xs px-2 py-1 rounded border"><i
+                                        class="fas fa-coffee"></i></button>
+                            </div>
+                        </div>
+
+                        <!-- Table 8 - free (VIP) -->
+                        <div
+                            class="table-card bg-white border border-[#E5E7EB] rounded-xl p-3 text-center shadow-sm relative">
+                            <span class="absolute top-2 right-2 status-badge bg-green-100 text-green-700">Free</span>
+                            <i class="fas fa-crown text-xl text-yellow-500 mt-2 mb-1"></i>
+                            <h3 class="font-bold text-base">VIP 1</h3>
+                            <p class="text-xs text-[#64748B]">4 seats (premium)</p>
+                            <div class="mt-3 flex justify-center">
+                                <button class="bg-[#F97316] text-white text-xs px-3 py-1 rounded-full">Assign</button>
+                            </div>
+                        </div>
+
+                        <!-- Table 9 - reserved -->
+                        <div
+                            class="table-card bg-white border-2 border-blue-300 rounded-xl p-3 text-center shadow-sm relative">
+                            <span class="absolute top-2 right-2 status-badge bg-blue-100 text-blue-700">Reserved</span>
+                            <i class="fas fa-clock text-2xl text-blue-500 mt-2 mb-1"></i>
+                            <h3 class="font-bold text-base">Table 9</h3>
+                            <p class="text-xs text-[#64748B]">4 seats · 20:00</p>
+                            <p class="text-xs font-medium">Chen party</p>
+                            <div class="mt-2 flex justify-center"><button
+                                    class="bg-[#F8FAFC] text-xs px-2 py-1 rounded border"><i
+                                        class="far fa-calendar"></i></button></div>
+                        </div>
+
+                        <!-- Table 10 - out of service -->
+                        <div
+                            class="table-card bg-gray-100 border border-gray-300 rounded-xl p-3 text-center shadow-sm relative opacity-70">
+                            <span class="absolute top-2 right-2 status-badge bg-gray-400 text-white">Maintenance</span>
+                            <i class="fas fa-tools text-2xl text-gray-500 mt-2 mb-1"></i>
+                            <h3 class="font-bold text-base">Table 10</h3>
+                            <p class="text-xs text-[#64748B]">unavailable</p>
+                        </div>
+
+                        <!-- Table 11 - occupied (bar) -->
+                        <div
+                            class="table-card bg-white border-2 border-[#F97316]/40 rounded-xl p-3 text-center shadow-sm relative">
+                            <span
+                                class="absolute top-2 right-2 status-badge bg-amber-100 text-amber-700">Occupied</span>
+                            <i class="fas fa-glass-cheers text-2xl text-[#F97316] mt-2 mb-1"></i>
+                            <h3 class="font-bold text-base">Bar 1</h3>
+                            <p class="text-xs text-[#64748B]">1 guest · 20 min</p>
+                            <p class="text-xs font-medium">#OR128</p>
+                            <div class="mt-2 flex justify-center gap-1">
+                                <button class="bg-[#F8FAFC] text-xs px-2 py-1 rounded border"><i
+                                        class="far fa-edit"></i></button>
+                            </div>
+                        </div>
+
+                        <!-- Table 12 - free (bar) -->
+                        <div
+                            class="table-card bg-white border border-[#E5E7EB] rounded-xl p-3 text-center shadow-sm relative">
+                            <span class="absolute top-2 right-2 status-badge bg-green-100 text-green-700">Free</span>
+                            <i class="fas fa-chair text-2xl text-[#94A3B8] mt-2 mb-1"></i>
+                            <h3 class="font-bold text-base">Bar 2</h3>
+                            <p class="text-xs text-[#64748B]">2 seats</p>
+                            <div class="mt-3 flex justify-center"><button
+                                    class="bg-[#F97316] text-white text-xs px-3 py-1 rounded-full">Assign</button></div>
+                        </div>
+
+                        <!-- filler: we have 24 tables total, showing sample 12; rest can be implied but we keep grid concise, adding few more to represent -->
+                        <!-- Table 13 (free) -->
+                        <div
+                            class="table-card bg-white border border-[#E5E7EB] rounded-xl p-3 text-center shadow-sm relative">
+                            <span class="absolute top-2 right-2 status-badge bg-green-100 text-green-700">Free</span>
+                            <i class="fas fa-chair text-2xl text-[#94A3B8] mt-2 mb-1"></i>
+                            <h3 class="font-bold text-base">Table 13</h3>
+                            <p class="text-xs text-[#64748B]">6 seats</p>
+                            <div class="mt-3"><button
+                                    class="bg-[#F97316] text-white text-xs px-3 py-1 rounded-full">Assign</button></div>
+                        </div>
+                        <!-- Table 14 - occupied -->
+                        <div
+                            class="table-card bg-white border-2 border-[#F97316]/40 rounded-xl p-3 text-center shadow-sm relative">
+                            <span
+                                class="absolute top-2 right-2 status-badge bg-amber-100 text-amber-700">Occupied</span>
+                            <i class="fas fa-utensils text-2xl text-[#F97316] mt-2 mb-1"></i>
+                            <h3 class="font-bold text-base">Table 14</h3>
+                            <p class="text-xs text-[#64748B]">2 guests · 5 min</p>
+                            <p class="text-xs font-medium">#OR129</p>
+                            <div class="mt-2 flex justify-center gap-1"><button
+                                    class="bg-[#F8FAFC] text-xs px-2 py-1 rounded border"><i
+                                        class="far fa-edit"></i></button></div>
+                        </div>
+                        <!-- Table 15 - reserved -->
+                        <div
+                            class="table-card bg-white border-2 border-blue-300 rounded-xl p-3 text-center shadow-sm relative">
+                            <span class="absolute top-2 right-2 status-badge bg-blue-100 text-blue-700">Reserved</span>
+                            <i class="fas fa-clock text-2xl text-blue-500 mt-2 mb-1"></i>
+                            <h3 class="font-bold text-base">Table 15</h3>
+                            <p class="text-xs text-[#64748B]">4 seats · 20:30</p>
+                            <p class="text-xs">Garcia</p>
+                        </div>
+                    </div>
+
+                    <!-- subtle note: remaining tables exist (16-24) not shown due to space; could be paginated or scrolled -->
+                    <p class="text-xs text-[#94A3B8] mt-4 text-center">Showing 1–15 of 24 tables. <a href="#"
+                            class="text-[#F97316] underline">View full layout</a></p>
+                </div>
+
+                <!-- RECENT TABLE ACTIVITY + RESERVATIONS (similar to order timeline but table focused) -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Upcoming reservations (span 2) -->
+                    <div class="lg:col-span-2 bg-white rounded-xl shadow-md border border-[#E5E7EB] p-5">
+                        <h2 class="text-xl font-semibold text-[#0F172A] mb-4"><i
+                                class="far fa-calendar-alt mr-2 text-[#F97316]"></i>Upcoming reservations</h2>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead class="text-[#64748B] border-b border-[#E5E7EB]">
+                                    <tr>
+                                        <th class="text-left font-medium pb-2">Time</th>
+                                        <th class="text-left font-medium">Guest</th>
+                                        <th class="text-left font-medium">Table</th>
+                                        <th class="text-left font-medium">Guests</th>
+                                        <th class="text-left font-medium">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-[#E5E7EB]">
+                                    <tr>
+                                        <td class="py-2">19:30</td>
+                                        <td class="font-medium">Wilson M.</td>
+                                        <td>Table 4</td>
+                                        <td>6 pax</td>
+                                        <td><span class="status-badge bg-blue-100 text-blue-700">Confirmed</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2">20:00</td>
+                                        <td>Chen Wei</td>
+                                        <td>Table 9</td>
+                                        <td>4 pax</td>
+                                        <td><span class="status-badge bg-blue-100 text-blue-700">Confirmed</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2">20:30</td>
+                                        <td>Garcia family</td>
+                                        <td>Table 15</td>
+                                        <td>4 pax</td>
+                                        <td><span class="status-badge bg-yellow-100 text-yellow-700">Pending</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2">21:00</td>
+                                        <td>Olivia P.</td>
+                                        <td>VIP 2</td>
+                                        <td>2 pax</td>
+                                        <td><span class="status-badge bg-blue-100 text-blue-700">Confirmed</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2">21:15</td>
+                                        <td>Thomas Keller</td>
+                                        <td>Table 8</td>
+                                        <td>4 pax</td>
+                                        <td><span class="status-badge bg-blue-100 text-blue-700">Confirmed</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <button class="mt-4 text-sm text-[#F97316] font-medium"><i class="fas fa-plus mr-1"></i>Add
+                            reservation</button>
+                    </div>
+
+                    <!-- Table service updates (recent activity) -->
+                    <div class="bg-white rounded-xl shadow-md border border-[#E5E7EB] p-5">
+                        <h2 class="text-xl font-semibold text-[#0F172A] mb-3"><i
+                                class="fas fa-history mr-2 text-[#64748B]"></i>Table updates</h2>
+                        <div class="space-y-4">
+                            <div class="relative pl-8 pb-3 border-l-2 border-[#F97316]">
+                                <div class="absolute left-[-8px] top-0 w-4 h-4 rounded-full bg-[#F97316]"></div>
+                                <p class="font-medium text-sm">Table 7 order ready</p>
+                                <p class="text-xs text-[#64748B]">#OR127 · 2 min ago</p>
+                            </div>
+                            <div class="relative pl-8 pb-3 border-l-2 border-[#E5E7EB]">
+                                <div class="absolute left-[-8px] top-0 w-4 h-4 rounded-full bg-[#94A3B8]"></div>
+                                <p class="font-medium text-sm">Table 2 requested bill</p>
+                                <p class="text-xs text-[#64748B]">7 min ago</p>
+                            </div>
+                            <div class="relative pl-8 pb-3 border-l-2 border-[#E5E7EB]">
+                                <div class="absolute left-[-8px] top-0 w-4 h-4 rounded-full bg-[#94A3B8]"></div>
+                                <p class="font-medium text-sm">Table 5: extra napkins</p>
+                                <p class="text-xs text-[#64748B]">12 min ago</p>
+                            </div>
+                            <div class="relative pl-8 pb-3 border-l-2 border-[#E5E7EB]">
+                                <div class="absolute left-[-8px] top-0 w-4 h-4 rounded-full bg-[#94A3B8]"></div>
+                                <p class="font-medium text-sm">Bar 1 cleared</p>
+                                <p class="text-xs text-[#64748B]">22 min ago</p>
+                            </div>
+                            <div class="relative pl-8 border-l-2 border-[#E5E7EB]">
+                                <div class="absolute left-[-8px] top-0 w-4 h-4 rounded-full bg-[#94A3B8]"></div>
+                                <p class="font-medium text-sm">Table 3 assigned to walk-in</p>
+                                <p class="text-xs text-[#64748B]">35 min ago</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Sidebar Toggle Script (identical to orders) -->
+    <script>
+        (function () {
+            const toggleBtn = document.getElementById('sidebarToggle');
+            const sidebar = document.getElementById('sidebar');
+            if (toggleBtn && sidebar) {
+                toggleBtn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    sidebar.classList.toggle('-translate-x-full');
+                });
+                document.addEventListener('click', function (event) {
+                    if (window.innerWidth < 768) {
+                        if (!sidebar.contains(event.target) && !toggleBtn.contains(event.target)) {
+                            sidebar.classList.add('-translate-x-full');
+                        }
+                    }
+                });
+            }
+        })();
+    </script>
+
+    <!-- responsive spacing fix (same as orders) -->
+    <style>
+        @media (max-width: 768px) {
+            #sidebar {
+                box-shadow: 4px 0 20px rgba(249, 115, 22, 0.15);
+            }
+        }
+    </style>
+
+</body>
+
+</html>
